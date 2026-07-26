@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Rol {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique // ej: "Administrador", "Mesa de Partes", "Ciudadano"
+  descripcion String?
+  permisos    Json      // JSON definiendo permisos por módulo
+  usuarios    Usuario[]
+  
+  creadoEn    DateTime  @default(now())
+  actualizadoEn DateTime @updatedAt
+}
+
+model UnidadOrganica {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique
+  siglas      String?
+  jefaturaId  Int?
+  padre       UnidadOrganica?  @relation("Jerarquia", fields: [jefaturaId], references: [id])
+  hijas       UnidadOrganica[] @relation("Jerarquia")
+  
+  usuarios    Usuario[]
+  derivacionesRecibidas Derivacion[] @relation("UnidadDestino")
+  
+  creadoEn    DateTime  @default(now())
+  actualizadoEn DateTime @updatedAt
+}
+
+model Usuario {
+  id              Int       @id @default(autoincrement())
+  dni             String    @unique
+  nombres         String
+  apellidos       String
+  correo          String    @unique
+  passwordHash    String
+  activo          Boolean   @default(true)
+  
+  rolId           Int
+  rol             Rol       @relation(fields: [rolId], references: [id])
+  
+  unidadId        Int?
+  unidadOrganica  UnidadOrganica? @relation(fields: [unidadId], references: [id])
+  expedientes     Expediente[]
+  anexosSubidos   Anexo[]
+  derivacionesEnviadas Derivacion[] @relation("UsuarioOrigen")
+  derivacionesAsignadas Derivacion[] @relation("UsuarioDestino")
+  notificaciones  Notificacion[]
+  auditorias      Auditoria[]
+  documentosInternos DocumentoInterno[] @relation("DocumentoAutor")
+  documentosRevisados DocumentoInterno[] @relation("DocumentoRevisor")
+  incidenciasReportadas Incidencia[]
+  
+  creadoEn        DateTime  @default(now())
+  actualizadoEn   DateTime  @updatedAt
+}
+
+model TipoDocumental {
+  id            Int       @id @default(autoincrement())
+  nombre        String
+  descripcion   String?
+  plazoDias     Int       @default(30)
+  requisitos    Json?     
+  
+  expedientes   Expediente[]
+  
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+}
+
+model Auditoria {
+  id            Int       @id @default(autoincrement())
+  usuarioId     Int?
+  usuario       Usuario?  @relation(fields: [usuarioId], references: [id])
+  accion        String
+  modulo        String
+  detalles      String?
+  ip            String?
+  
+  creadoEn      DateTime  @default(now())
+}
+
+model Configuracion {
+  id            Int       @id @default(autoincrement())
+  clave         String    @unique
+  valor         String
+  descripcion   String?
+  
+  actualizadoEn DateTime  @updatedAt
+}
+
+model Expediente {
+  id                  Int       @id @default(autoincrement())
+  codigo              String    @unique // ej: EXP-0001-2026
+  
+  // Datos del Documento
+  tipoDocumentalId    Int
+  tipoDocumental      TipoDocumental @relation(fields: [tipoDocumentalId], references: [id])
+  asunto              String
+  folios              Int       @default(1)
+  
+  // Datos del Remitente
+  dniRemitente        String
+  nombresRemitente    String
+  apellidosRemitente  String
+  correoRemitente     String?
+  telefonoRemitente   String?
+  
+  // Archivo
+  archivoUrl          String?   // Opcional
+  
+  // Auditoria interna
+  registradorId       Int
+  registrador         Usuario   @relation(fields: [registradorId], references: [id])
+  
+  // Estado actual general
+  estado              String    @default("REGISTRADO") // REGISTRADO, EN_PROCESO, FINALIZADO, ARCHIVADO
+  prioridad           String    @default("NORMAL")     // NORMAL, ALTA, URGENTE
+  
+  anexos              Anexo[]
+  documentosInternos  DocumentoInterno[]
+  derivaciones        Derivacion[]
+  notificaciones      Notificacion[]
+
+  creadoEn            DateTime  @default(now())
+  actualizadoEn       DateTime  @updatedAt
+}
+
+model Anexo {
+  id            Int         @id @default(autoincrement())
+  expedienteId  Int
+  expediente    Expediente  @relation(fields: [expedienteId], references: [id])
+  nombreArchivo String
+  archivoUrl    String
+  subidoPorId   Int
+  subidoPor     Usuario     @relation(fields: [subidoPorId], references: [id])
+  creadoEn      DateTime    @default(now())
+}
+
+model Derivacion {
+  id              Int       @id @default(autoincrement())
+  expedienteId    Int
+  expediente      Expediente @relation(fields: [expedienteId], references: [id])
+  
+  // Origen
+  origenId        Int
+  origen          Usuario    @relation("UsuarioOrigen", fields: [origenId], references: [id])
+  
+  // Destino (A un área completa)
+  destinoUnidadId Int?
+  destinoUnidad   UnidadOrganica? @relation("UnidadDestino", fields: [destinoUnidadId], references: [id])
+  
+  // Destino (A una persona específica dentro del área) - RF-16
+  destinoUsuarioId Int?
+  destinoUsuario   Usuario? @relation("UsuarioDestino", fields: [destinoUsuarioId], references: [id])
+  
+  // Datos
+  instrucciones   String?
+  estado          String     @default("PENDIENTE") // PENDIENTE, RECIBIDO, ATENDIDO
+  
+  creadoEn        DateTime   @default(now())
+  actualizadoEn   DateTime   @updatedAt
+}
+
+model Notificacion {
+  id              Int        @id @default(autoincrement())
+  usuarioId       Int
+  usuario         Usuario    @relation(fields: [usuarioId], references: [id])
+  mensaje         String
+  leido           Boolean    @default(false)
+  tipo            String     @default("NORMAL") // NORMAL, URGENTE
+  expedienteId    Int?
+  expediente      Expediente? @relation(fields: [expedienteId], references: [id])
+  
+  creadoEn        DateTime   @default(now())
+}
+
+model DocumentoInterno {
+  id              Int       @id @default(autoincrement())
+  expedienteId    Int
+  expediente      Expediente @relation(fields: [expedienteId], references: [id])
+  autorId         Int
+  autor           Usuario    @relation("DocumentoAutor", fields: [autorId], references: [id])
+  tipo            String     // "PROVEIDO", "INFORME", "RESPUESTA_CIUDADANO"
+  contenido       String     // HTML
+  esBorrador      Boolean    @default(false)
+  
+  estadoAprobacion String     @default("PENDIENTE") // "PENDIENTE", "APROBADO", "OBSERVADO", "FIRMADO"
+  revisorId       Int?
+  revisor         Usuario?   @relation("DocumentoRevisor", fields: [revisorId], references: [id])
+  fechaAprobacion DateTime?
+  observacionesRevisor String?
+  fechaFirma      DateTime?
+
+  creadoEn        DateTime   @default(now())
+  actualizadoEn   DateTime   @updatedAt
+}
+
+model Incidencia {
+  id              Int       @id @default(autoincrement())
+  titulo          String
+  descripcion     String
+  prioridad       String    @default("MEDIA") // BAJA, MEDIA, ALTA, CRITICA
+  estado          String    @default("PENDIENTE") // PENDIENTE, EN_PROCESO, RESUELTO
+  
+  reportadoPorId  Int
+  reportadoPor    Usuario   @relation(fields: [reportadoPorId], references: [id])
+  
+  creadoEn        DateTime  @default(now())
+  actualizadoEn   DateTime  @updatedAt
+}

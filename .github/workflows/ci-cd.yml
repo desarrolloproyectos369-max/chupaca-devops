@@ -1,0 +1,50 @@
+name: CI/CD Pipeline - DevOps Municipalidad
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    name: Integración Continua (CI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Instalar Dependencias
+        run: npm install
+
+      - name: Generar cliente Prisma (Base de Datos)
+        run: npx prisma generate
+
+      - name: Construir y Compilar Proyecto (Build)
+        run: npm run build
+        # Permite que la compilación pase incluso si faltan variables de entorno reales en la prueba
+        env:
+          DATABASE_URL: "postgresql://postgres:password@localhost:5432/muni_devops"
+          NEXT_PUBLIC_APP_VERSION: ${{ github.sha }}
+
+  deploy:
+    name: Entrega Continua (CD)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Despliegue Automatizado
+        run: |
+          echo "========================================================="
+          echo "✅ Integración Continua superada exitosamente."
+          echo "🚀 Ejecutando Despliegue Automatizado (Entrega Continua)..."
+          echo "========================================================="
+          echo "En un entorno real, aquí se ejecutarían los scripts para enviar"
+          echo "el código compilado al servidor de producción (AWS, Vercel, VPS)."
