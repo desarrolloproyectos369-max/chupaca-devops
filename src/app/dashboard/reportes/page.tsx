@@ -20,6 +20,9 @@ interface Expediente {
   estado: string;
   creadoEn: string;
   prioridad: string;
+  nombresRemitente: string;
+  apellidosRemitente: string;
+  dniRemitente: string;
   tipoDocumental: {
     nombre: string;
     plazoDias: number;
@@ -125,7 +128,7 @@ export default function ReportesPage() {
       const html2pdf = (await import('html2pdf.js')).default;
       const element = document.getElementById('tabla-reporte');
       
-      const opt = {
+      const opt: any = {
         margin:       0.5,
         filename:     `Reporte_Expedientes_${new Date().toISOString().split('T')[0]}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
@@ -133,6 +136,7 @@ export default function ReportesPage() {
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
       };
       
+      if (!element) return;
       html2pdf().set(opt).from(element).save();
     } catch (error) {
       console.error("Error al generar PDF:", error);

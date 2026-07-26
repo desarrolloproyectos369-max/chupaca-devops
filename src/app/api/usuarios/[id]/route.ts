@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const paramsResolved = await params;
@@ -67,7 +67,7 @@ export async function PUT(
 // PATCH usado para habilitar/deshabilitar usuarios (Soft Delete lógico)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const paramsResolved = await params;

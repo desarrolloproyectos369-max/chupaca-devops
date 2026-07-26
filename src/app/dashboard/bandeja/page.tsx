@@ -5,6 +5,7 @@ import { Inbox, Search, Eye, Download, FileText, AlertCircle, FileUp, Loader2, S
 import styles from "../../page.module.css";
 import RichTextEditor from "@/components/RichTextEditor";
 import { UserContext } from "../ClientLayout";
+import Link from "next/link";
 
 interface TipoDocumental {
   nombre: string;
@@ -1525,7 +1526,7 @@ export default function BandejaPage() {
                                       </div>
                                     `;
                                     
-                                    const opt = {
+                                    const opt: any = {
                                       margin:       0,
                                       filename:     `${doc.tipo}_${selectedExpediente?.codigo}.pdf`,
                                       image:        { type: 'jpeg', quality: 0.98 },

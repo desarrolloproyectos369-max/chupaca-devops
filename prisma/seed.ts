@@ -211,13 +211,6 @@ async function main() {
     { nombre: 'Solicitud', descripcion: 'Petición ingresada por un ciudadano externo', plazoDias: 30 },
   ];
 
-  for (const t of tiposDocumentales) {
-    await prisma.tipoDocumental.upsert({
-      where: { id: -1 }, // Truco: Prisma no tiene UPSERT por nombre si no es @unique. 
-                         // Crearemos si la DB está vacía o dejaremos que se inserten. 
-                         // Como no es unique, mejor borramos y creamos.
-    }).catch(e => {}); // Ignorar el upsert fallido
-  }
 
   // Mejor borrar y crear para asegurar idempotencia en el seeder
   await prisma.tipoDocumental.deleteMany();
